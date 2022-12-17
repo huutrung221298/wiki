@@ -4,7 +4,7 @@ from . import util
 from markdown2 import Markdown
 import random
 
-def convert_md_to_html(title):
+def convert_md(title):
     content = util.get_entry(title)
     markdowner = Markdown()
     
@@ -19,10 +19,10 @@ def index(request):
     })
 
 def entry(request, title):
-    html_content = convert_md_to_html(title)
+    html_content = convert_md(title)
     if html_content == None:
         return render(request, "encyclopedia/error.html", {
-            "message": "This entry does not exist"
+            "message": "Page was not found."
         })
     else:
         return render(request, "encyclopedia/entry.html", {
@@ -32,37 +32,44 @@ def entry(request, title):
 
 def search(request):
     if request.method == "POST":
-        entry_search = request.POST['q']
-        html_content = convert_md_to_html(entry_search)
-        if html_content is not None:
+        search = request.POST['q']
+        html_content = convert_md(search)
+        if html_content:
                 return render(request, "encyclopedia/entry.html", {
-                "title": entry_search,
+                "title": search,
                 "content": html_content
                 })
         else:
             allEntries = util.list_entries()
-            recommendation =[]
+            recommendations =[]
             for entry in allEntries:
-                if entry_search.lower() in entry.lower():
-                    recommendation.append(entry)
+                if search.lower() in entry.lower():
+                    recommendations.append(entry)
             return render(request, "encyclopedia/search.html", {
-                "recommendation": recommendation
+                "recommendations": recommendations
             })
 
-def new_page(request):
+def createnewpage(request):
     if request.method == "GET":
-        return render(request, "encyclopedia/new.html") 
+        return render(request, "encyclopedia/createnewpage.html") 
     else:
         title = request.POST['title']
         content= request.POST['content']
-        titleExist = util.get_entry(title)
-        if titleExist is not None:
+
+        if title =='' or content =='':
+            return render(request,"encyclopedia/error.html", {
+                "message": "Title and content cannot be empty"
+            })
+
+        checkTitle = util.get_entry(title)
+
+        if checkTitle:
             return render(request, "encyclopedia/error.html", {
                 "message": "Entry page already exists"
             })
         else:
             util.save_entry(title, content)
-            html_content = convert_md_to_html(title)
+            html_content = convert_md(title)
             return render(request, "encyclopedia/entry.html", {
                 "title": title,
                 "content": html_content
@@ -70,7 +77,7 @@ def new_page(request):
 
 def edit(request):
     if request.method == "POST":
-        title = request.POST['entry_title']
+        title = request.POST['title']
         content = util.get_entry(title)
         return render(request, "encyclopedia/edit.html", {
             "title": title,
@@ -81,8 +88,14 @@ def save_edit(request):
         if request.method == "POST":
             title = request.POST['title']
             content = request.POST['content']
+
+            if title =='' or content =='':
+                return render(request,"encyclopedia/error.html", {
+                "message": "Title and content cannot be empty"
+            })
+            
             util.save_entry(title, content)
-            html_content = convert_md_to_html(title)
+            html_content = convert_md(title)
             return render(request, "encyclopedia/entry.html", {
                 "title": title,
                 "content": html_content
@@ -91,9 +104,9 @@ def save_edit(request):
 
 def rand(request):
     allEntries = util.list_entries()
-    rand_entry = random.choice(allEntries)
-    html_content = convert_md_to_html(rand_entry)
+    rand = random.choice(allEntries)
+    html_content = convert_md(rand)
     return render(request, "encyclopedia/entry.html", {
-        "title": rand_entry,
+        "title": rand,
         "content": html_content
     })
